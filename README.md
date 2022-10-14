@@ -20,6 +20,12 @@ But this is only of secondary interest and will be approached after the main goa
 - [x] main tonnetz plane
 - [x] colors for black and white keys on piano
 - [x] colors for major and minor triads
+- [x] center tonnetz around a single selected note (e.g. root)
+	- [x] via slider
+	- [ ] via click on note
+		- click on note
+		- get its nodeIndices value! (how?)
+		- this is the new offset of the tonnetz
 - [ ] notes as buttons for highlighting of chords/scales/...
 - [ ] hover effect for notes (and triads?)
 - [ ] find good placement and visualization of enharmonics
