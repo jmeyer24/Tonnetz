@@ -3,6 +3,8 @@
   --color: #000;
   --background-color: #fff;
   --standardColor: #5a4;
+  --rootColor: red;
+  --destinationColor: grey;
   --left: 0px;
   --top: 0px;
   --width: 0px;
@@ -64,8 +66,10 @@ body {
 
   /* to align in center */
   display: flex;
-  /* horizontally */
+  /* horizontally: flexbox */
   justify-content: center;
+  /* horizontally: text */
+  text-align: center;
   /* vertically */
   align-items: center;
   /* addition for the 2 line notes */
@@ -90,13 +94,25 @@ body {
   /* --noteScaling: 1.25; */
   border-width: 5px;
   border-style: solid;
-  border-color: var(--standardColor);
+  border-color: var(--rootColor);
 }
 
-.note.chord {
+.note.root {
+  border-width: 10px;
+  border-style: solid;
+  border-color: var(--rootColor);
+}
+
+.note.chordNote {
   border-width: 10px;
   border-style: solid;
   border-color: var(--standardColor);
+}
+
+.note.destination {
+  border-width: 10px;
+  border-style: solid;
+  border-color: var(--destinationColor);
 }
 
 /* .noteName:hover{ */

@@ -26,6 +26,8 @@ But this is only of secondary interest and will be approached after the main goa
 		- click on note
 		- get its nodeIndices value! (how?)
 		- this is the new offset of the tonnetz
+- [ ] highlight area of parallelogram (3 notes up, 4 notes down, both to the right, e.g. c -> ab/g# and c -> a)
+- [ ] maj7 and such substituted by the jazz symbols
 - [ ] notes as buttons for highlighting of chords/scales/...
 - [ ] hover effect for notes (and triads?)
 - [ ] find good placement and visualization of enharmonics

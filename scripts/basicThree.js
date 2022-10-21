@@ -1,7 +1,28 @@
+// MOVEMENT FOR THE USER
+
+// =============== movement ======================
+// CLICK: choose this note as chord root
+// ARROWS: move root in the arrow direction
+// -----------------------------------------------
+// +SHIFT: instead click/move destination note
+// +CTRL: instead move tonnetz in respect to chord
+// -----------------------------------------------
+
+// =============== coloring ======================
+// MOUSESCROLL: change chord color (maj7, -7, ...)
+// SPACEBAR: toggle coloring
+
+// =============== destination note ==============
+// C: iterate through chords with destination note as interval note, upward
+// V: same as C, but downward
+// ENTER: center tonnetz on the root note
+// +SHIFT: instead center on the destination note
+// +CTRL: instead move destination note to root
+
 let v = new function () {
   this.size = 27;
   this.segments = 8;
-  this.noteSize = 2;
+  this.noteSize = 1.5;
   this.vertices = [];
   this.normals = [];
   this.indices = [];
@@ -11,55 +32,41 @@ let v = new function () {
   this.noteBin = document.createElement("div");
   this.defaultNoteIndices = [];
   this.noteIndices = [];
+  this.destinationNoteIndices = [];
   this.offset = 0;
   this.notes = [
     "C",
-    "Db\nC#",
+    "Db/C#",
     "D",
-    "Eb\nD#",
+    "Eb/D#",
     "E",
     "F",
-    "Gb\nF#",
+    "Gb/F#",
     "G",
-    "Ab\nG#",
+    "Ab/G#",
     "A",
-    "Bb\nA#",
+    "Bb/A#",
     "B",
   ]
-  this.chordOptions = ["o", "-", "", "+", "o7", "o/7", "o/maj7", "-7", "&#8209;maj7", "7", "maj7", "+7", "+maj7"];
+  this.chordOptions = ["o", "-", "", "+", "o7", "o/7", "o/maj7", "-7", "&#8209;maj7", "7", "maj7", "+7", "+maj7", "o7(b9)", "o9", "o/7(b9)", "o/9", "&#8209;7(b9)", "-9", "7(b9)", "9", "maj7(b9)", "maj9", "+maj7(b9)", "+maj9", "sus4"];
+  this.chordPossibilities = [];
+  this.intervals = ["1", "b2/b9", "2/9", "b3", "3", "4/11", "b5/#11", "5", "b6/b13", "6/13", "b7", "maj7"];
   this.chordFunctions = [0]; // root = 0, fifth = 7, ...
   this.diatonics = [0, 2, 4, 5, 7, 9, 11, 12];
   this.scaling = [0, 1, 1.25, 1.5, 2]
   // this.speed = ["0s", "0.7s"]
-  this.clicked = Array((this.segments + 1) ** 2).fill(false);
-  this.menuFocus = Math.floor((this.segments + 1) ** 2 / 2);
-  this.currentChord = Math.floor(13 * Math.random());
+  this.rootNote = Math.floor((this.segments + 1) ** 2 / 2);
+  this.destinationNote = this.rootNote;
+  // this.currentChord = Math.floor(13 * Math.random());
+  this.currentChord = 2;
+  this.currentPossibility = 0;
 }
-
-$(window).on('wheel', function (event) {
-  // deltaY obviously records vertical scroll, deltaX and deltaZ exist too.
-  // this condition makes sure it's vertical scrolling that happened
-  if (v.clicked[v.menuFocus]) {
-    markChord(v.menuFocus);
-  }
-  if (event.originalEvent.deltaY !== 0) {
-    if (event.originalEvent.deltaY < 0) {
-      v.currentChord += 1;
-    }
-    else {
-      v.currentChord -= 1;
-    }
-    let l = v.chordOptions.length;
-    v.currentChord = ((v.currentChord % l) + l) % l;
-  }
-  markChord(v.menuFocus);
-  // $(".menuNote").html(`${v.notes[v.noteIndices[v.menuFocus]] + v.chordOptions[v.currentChord]}`)
-});
 
 const notesPerRow = v.segments + 1;
 // map the half steps to the tonnetz
 // const hsTonnetzMap = [0, -2 * notesPerRow - 1, 2, notesPerRow + 1, -notesPerRow, -1, -notesPerRow + 2, 1, notesPerRow, -notesPerRow - 1, notesPerRow + 2, -notesPerRow + 1];
-const hsTonnetzMap = [0, -2 * (notesPerRow + 0.5), 2, notesPerRow + 1, -notesPerRow, -1, 2 * (notesPerRow + 1), 1, -2 * notesPerRow, 3 * (notesPerRow + 1), notesPerRow + 2, -notesPerRow + 1];
+const hsTonnetzMap = [0, 2 * (notesPerRow + 1.5), 2, notesPerRow + 1, -notesPerRow, -1, 2 * (notesPerRow + 1), 1, -2 * notesPerRow, 3 * (notesPerRow + 1), notesPerRow + 2, -notesPerRow + 1];
+const arrowMovementMap = [0, 2 * (notesPerRow + 1.5), 2, notesPerRow + 1, -notesPerRow, -1, 2 * (notesPerRow + 1), 1, -2 * notesPerRow, -(notesPerRow + 1), notesPerRow + 2, -notesPerRow + 1];
 
 // fill the v.chordFunctions array with the half steps from root for the respective chord
 const fillChordFunctions = chord => {
@@ -131,6 +138,87 @@ const fillChordFunctions = chord => {
       major7();
       break;
 
+    // seventh chords with coloring
+    // fully-diminished
+    case v.chordOptions[13]:
+      minor3();
+      tritonus();
+      major6();
+      minor2();
+      break;
+    case v.chordOptions[14]:
+      minor3();
+      tritonus();
+      major6();
+      major2();
+      break;
+    case v.chordOptions[15]:
+      minor3();
+      tritonus();
+      minor7();
+      minor2();
+      break;
+    case v.chordOptions[16]:
+      minor3();
+      tritonus();
+      minor7();
+      major2();
+      break;
+    case v.chordOptions[17]:
+      minor3();
+      perfect5();
+      minor7();
+      minor2();
+      break;
+    case v.chordOptions[18]:
+      minor3();
+      perfect5();
+      minor7();
+      major2();
+      break;
+    case v.chordOptions[19]:
+      major3();
+      perfect5();
+      minor7();
+      minor2();
+      break;
+    case v.chordOptions[20]:
+      major3();
+      perfect5();
+      minor7();
+      major2();
+      break;
+    case v.chordOptions[21]:
+      major3();
+      perfect5();
+      major7();
+      minor2();
+      break;
+    case v.chordOptions[22]:
+      major3();
+      perfect5();
+      major7();
+      major2();
+      break;
+    case v.chordOptions[23]:
+      major3();
+      minor6();
+      major7();
+      minor2();
+      break;
+    case v.chordOptions[24]:
+      major3();
+      minor6();
+      major7();
+      major2();
+      break;
+    
+    // chords with 4
+    case v.chordOptions[25]:
+      perfect4();
+      perfect5();
+      break;
+
     // just the root otherwise
     default:
       break;
@@ -151,11 +239,24 @@ const minor7 = () => v.chordFunctions.push(10);
 const major7 = () => v.chordFunctions.push(11);
 
 // utility functions
+const mod = (value, n) => ((((value) % n) + n) % n);
 const pos = (i) => [i * 3, i * 3 + 1].map((i) => v.vertices[i]);
 const col = (i) => isDiatonic(i) ? "#000" : "#fff";
 const isDiatonic = (i) => v.diatonics.includes(i);
 const backgroundCol = (i) => isDiatonic(i) ? "#fff" : "#000";
 const clickCol = (i) => isDiatonic(i) ? "#5a4" : "#5a4";
+
+function updateChordPossibilites() {
+  v.chordPossibilities = [];
+  v.chordOptions.forEach(function (chordoption, index) {
+    fillChordFunctions(chordoption);
+    // let hsFromRoot = mod(v.notes.length - v.destinationNoteIndices[v.destinationNote], v.notes.length)
+    let hsFromRoot = v.destinationNoteIndices[v.destinationNote];
+    if (v.chordFunctions.includes(hsFromRoot)) {
+      v.chordPossibilities.push(index);
+    }
+  })
+}
 
 // main variables
 let camera, scene, renderer;
@@ -164,7 +265,7 @@ let mesh;
 initScene();
 initTonnetz();
 drawTonnetz();
-drawNoteNames();
+drawNotes();
 initMenu();
 initGui();
 animate();
@@ -195,7 +296,91 @@ function initScene() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  window.addEventListener("resize", onWindowResize);
+  $(window).on("resize", onWindowResize);
+  $(window).on('wheel', function (event) {
+    // deltaY obviously records vertical scroll, deltaX and deltaZ exist too.
+    // this condition makes sure it's vertical scrolling that happened
+    if (event.originalEvent.deltaY !== 0) {
+      if (event.originalEvent.deltaY < 0) {
+        v.currentChord += 1;
+      }
+      else {
+        v.currentChord -= 1;
+      }
+    }
+    markChord(true);
+  });
+  $(window).keydown(function (event) {
+    // console.log(event.which);
+    switch (event.which) {
+      case 13: // enter: focus on destination Note
+        keydownEnter();
+        break;
+      case 32: // space bar: toggle chord coloring
+        markChord()
+        break;
+      case 37: // on left: keydownArrow function
+        keydownArrow(5)
+        break;
+      case 38: // on up
+        keydownArrow(9)
+        break;
+      case 39: // on right
+        keydownArrow(7);
+        break;
+      case 40: // on down
+        keydownArrow(3);
+        break;
+      case 67: // on "c": iterate through possibilities upward
+        keydownPossibilities(1);
+        break;
+      case 86: // on "v": iterate through possibilities downward
+        keydownPossibilities(-1);
+        break;
+      default:
+        return;
+    }
+
+    function keydownEnter() {
+      // see start of file
+      if (event.ctrlKey) {
+
+      } else if (event.shiftKey) {
+        recenterTonnetzByPatternIndex(v.destinationNote);
+      } else {
+        recenterTonnetzByPatternIndex(v.rootNote);
+      }
+      v.destinationNote = v.rootNote;
+      markChord(true);
+    }
+
+    function keydownArrow(halfsteps) {
+      // see start of file
+
+      if (event.shiftKey) {
+        // mark destination note, then ctrl key event
+        $(`#noteBin div:nth-child(${v.destinationNote + 1})`).removeClass("destination");
+        v.destinationNote += arrowMovementMap[halfsteps];
+        v.destinationNote = mod(v.destinationNote, v.noteIndices.length);
+        $(`#noteBin div:nth-child(${v.destinationNote + 1})`).addClass("destination");
+      } else if (event.ctrlKey) {
+        v.offset = v.noteIndices[v.rootNote] + halfsteps;
+        updateNotePattern();
+      } else {
+        v.rootNote += arrowMovementMap[halfsteps];
+        v.rootNote = mod(v.rootNote, (v.segments + 1) ** 2);
+        updateNoteIndices();
+      }
+      markChord(true);
+    }
+
+    function keydownPossibilities(value) {
+      updateChordPossibilites();
+      v.currentPossibility = mod((v.currentPossibility + value), v.chordPossibilities.length);
+      v.currentChord = v.chordPossibilities[v.currentPossibility];
+      markChord(true);
+    }
+  })
 }
 
 //
@@ -254,16 +439,24 @@ function calculateNoteIndices() {
 
 //
 
+function recenterTonnetzByPatternIndex(index) {
+  v.offset = v.noteIndices[index];
+  v.rootNote = 40;
+  // v.destinationNote = 40;
+  updateNotePattern();
+}
+
 function updateNotePattern() {
   updateNoteIndices();
-  drawNoteNames();
+  drawNotes();
   initMenu();
 }
 
 function updateNoteIndices() {
   // reorder by offset!
   const n = v.notes.length;
-  v.noteIndices = v.defaultNoteIndices.map(value => (((value + v.offset) % n) + n) % n);
+  v.noteIndices = v.defaultNoteIndices.map(value => mod(value + v.offset, v.notes.length));
+  v.destinationNoteIndices = v.defaultNoteIndices.map(value => mod(value + v.offset - v.noteIndices[v.rootNote], v.notes.length));
 }
 
 //
@@ -273,28 +466,15 @@ function drawTonnetz() {
   for (let i = 0; i < 2 * v.segments ** 2; i++) {
     let ind = v.indices.slice(i * 3, (i + 1) * 3);
 
-    let geometry = new THREE.BufferGeometry();
+    const geometry = new THREE.BufferGeometry();
     geometry.setIndex([0, 1, 2]);
-    geometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(
-        ind
-          .map((i) => [i * 3, i * 3 + 1, i * 3 + 2].map((j) => v.vertices[j]))
-          .flat(),
-        3
-      )
+    geometry.setAttribute("position",
+      new THREE.Float32BufferAttribute(ind.map((i) => [i * 3, i * 3 + 1, i * 3 + 2].map((j) => v.vertices[j])).flat(), 3)
     );
-    geometry.setAttribute(
-      "normal",
-      new THREE.Float32BufferAttribute(
-        ind
-          .map((i) => [i * 3, i * 3 + 1, i * 3 + 2].map((j) => v.normals[j]))
-          .flat(),
-        3
-      )
+    geometry.setAttribute("normal",
+      new THREE.Float32BufferAttribute(ind.map((i) => [i * 3, i * 3 + 1, i * 3 + 2].map((j) => v.normals[j])).flat(), 3)
     );
-    geometry.setAttribute(
-      "color",
+    geometry.setAttribute("color",
       new THREE.Float32BufferAttribute(i % 2 ? v.majorColor : v.minorColor, 3)
     );
 
@@ -308,7 +488,7 @@ function drawTonnetz() {
 
 }
 
-function drawNoteNames() {
+function drawNotes() {
   // create div for the noteBin
   $("#noteBin").remove()
   $("body").append($("<div>").attr("id", "noteBin").addClass("noteBin"))
@@ -326,38 +506,28 @@ function drawNoteNames() {
         // make it of class note
         .addClass("note")
         // style the note according to diatonic or not
-        // .css('--noteScaling', 1)
         .css('--color', col(noteInd))
         .css('--background-color', backgroundCol(noteInd))
         .css('--left', `${window.innerWidth / 2 + pos(i)[0] * whatisthis}px`)
         .css('--top', `${window.innerHeight / 2 - pos(i)[1] * whatisthis}px`)
         .css('--width', `${v.noteSize}em`)
         .css('--height', `${v.noteSize}em`)
-        // mouseclick events: open and center menu on clicked note
-        .click(
-          () => {
-            if (v.clicked[v.menuFocus]) {
-              markChord(v.menuFocus);
-            }
-            v.menuFocus = i;
-            $("#menu")
-              .css("--noteScaling", v.scaling[1])
-              // center the menu on the clicked note
-              .css('--left', `${window.innerWidth / 2 + pos(v.menuFocus)[0] * whatisthis}px`)
-              .css('--top', `${window.innerHeight / 2 - pos(v.menuFocus)[1] * whatisthis}px`)
-            // .css("--transitionSpeed", v.speed[1])
-            // .css("transform", `scale(${v.scaling[4]})`);
-            $(".menuNote")
-              // change to respective note name
-              // .html(v.notes[v.noteIndices[v.menuFocus]])
-              // .css("--noteScaling", v.scaling[2])
-              // reverse coloring
-              .css('--color', col(v.noteIndices[v.menuFocus]))
-              .css('--background-color', backgroundCol(v.noteIndices[v.menuFocus]))
-            // expand the menu
-            // color the chord
-            markChord(v.menuFocus);
+        // mouseclick events: center menu on clicked note and color chord
+        .click((event) => {
+          if (event.shiftKey) {
+            // center the destination note on the clicked note when shift+mouseclick
+            v.destinationNote = i;
+            markChord(true);
+          } else if (event.ctrlKey) {
+            // center the tonnetz on the clicked note when strg+mouseclick
+            recenterTonnetzByPatternIndex(i);
+            markChord(true);
+          } else {
+            // center the chord on the clicked note
+            v.rootNote = i;
+            markChord();
           }
+        }
         )
         // add the note name
         .append(document.createTextNode(v.notes[noteInd]))
@@ -365,74 +535,75 @@ function drawNoteNames() {
   }
 }
 
-function markChord(i) {
-  // write chord name
-  // if (v.clicked[i]) {
-  $(".menuNote").html(`${v.notes[v.noteIndices[v.menuFocus]] + v.chordOptions[v.currentChord]}`)
-  // }
+function markChord(disableToggle = false) {
+  // TODO: restrictions to the tonnetz, as indices go out of bounds
 
-  // following line is the same as i!!!
-  // const currentInd = Array.from(v.noteBin.children).indexOf(element);
+  // make sure currentChord is valid
+  v.currentChord = mod(v.currentChord, v.chordOptions.length);
 
   // get the array of halfsteps from the root
   fillChordFunctions(v.chordOptions[v.currentChord]);
 
-  // TODO: restrictions to the tonnetz, as indices go out of bounds
-  // root
-  // v.chordFunctions = [i];
-  // minor second
-  // major second
-  // minor third
-  // major third
-  // if (i > v.segments) {
-  //   v.chordFunctions.push(i - (notesPerRow));
-  // }
-  // fourth
-  // fifth
-  // if (i % (notesPerRow) < v.segments) {
-  //   v.chordFunctions.push(i + 1);
-  // }
-  // minor sixth
-  // major sixth
-  // minor seventh
-  // major seventh
+  // remove all previous coloring
+  let isRoot = $(`#noteBin div:nth-child(${v.rootNote + 1})`).hasClass("root");
+  $("#noteBin").children().each(function (index) {
+    $(this)
+      .removeClass("root")
+      .removeClass("chordNote")
+      .removeClass("destination")
+      .html(`${v.notes[v.noteIndices[index]]}`)
+  })
 
-  // color the current chord
-  v.chordFunctions.map(i => hsTonnetzMap[i]).forEach((j) => {
-    if (i + j < (notesPerRow) ** 2) {
-      highlight(i + j);
+  if (disableToggle) {
+    isRoot = false;
+  }
+
+  // color the current chord by adding a class to respective notes
+  // only if not already colored, then don't color (toggle)
+  if (!isRoot) {
+    let name = "";
+    v.chordFunctions.map(i => hsTonnetzMap[i]).forEach((halfsteps, index) => {
+      k = v.rootNote + halfsteps;
+      if (k < (notesPerRow) ** 2) {
+        if (k == v.rootNote) {
+          // write chord name at root
+          name = `${v.notes[v.noteIndices[k]] + "\n" + v.chordOptions[v.currentChord]}`;
+        } else {
+          // write chord function of non-root notes
+          name = `${v.notes[v.noteIndices[k]] + "\n" + v.intervals[v.chordFunctions[index]]}`;
+        }
+        $(`#noteBin div:nth-child(${k + 1})`)
+          .addClass((k == v.rootNote) ? "root" : "chordNote")
+          .html(name)
+      }
+    });
+    // update destination note
+    if (v.destinationNote != v.rootNote) {
+      name = `${v.notes[v.noteIndices[v.destinationNote]] + "\n" + v.intervals[v.destinationNoteIndices[v.destinationNote]]}`;
+      $(`#noteBin div:nth-child(${v.destinationNote + 1})`)
+        .addClass("destination")
+        .html(name)
     }
-  });
-}
-
-function highlight(i) {
-  // $(`#noteBin div:nth-child(${i + 1})`).css("background-color", v.clicked[i] ? backgroundCol(v.noteIndices[i]) : clickCol(v.noteIndices[i]));
-  // $(`#noteBin div:nth-child(${i + 1})`).css(v.clicked[i]?{
-  //   "border-width": "3px",
-  //   "border-style": "solid",
-  //   "border-color": "var(--standardColor)"
-  // });
-  $(`#noteBin div:nth-child(${i + 1})`).toggleClass("chord")
-  v.clicked[i] = !v.clicked[i];
+  }
 }
 
 //
 
 function initMenu() {
-  const whatisthis = 31.8;
+  // const whatisthis = 31.8;
 
-  $("#menu").remove();
+  // $("#menu").remove();
 
   // TODO: markChord(i) after menu selection
-  $("body").append(
-    $("<div>")
-      .attr("id", "menu")
-      .addClass("menu")
-      .css('--left', `${window.innerWidth / 2 + pos(v.menuFocus)[0] * whatisthis}px`)
-      .css('--top', `${window.innerHeight / 2 - pos(v.menuFocus)[1] * whatisthis}px`)
-    // .css('--menuWidth', `${v.noteSize}em`)
-    // .css('--menuHeight', `${v.noteSize}em`)
-  );
+  // $("body").append(
+  //   $("<div>")
+  //     .attr("id", "menu")
+  //     .addClass("menu")
+  //     .css('--left', `${window.innerWidth / 2 + pos(v.rootNote)[0] * whatisthis}px`)
+  //     .css('--top', `${window.innerHeight / 2 - pos(v.rootNote)[1] * whatisthis}px`)
+  //     // .css('--menuWidth', `${v.noteSize+1}em`)
+  //     // .css('--menuHeight', `${v.noteSize+1}em`)
+  // );
 
   // TODO: establish links and respective chords (use markChord() again)
   // ["major third", "minor third"].forEach((element) => {
@@ -441,49 +612,20 @@ function initMenu() {
   //   $("#menu").append($("<div>").addClass("menuPart").text(element))
   // });
 
-  // create the visual center note of the menu
-  // TODO: resolve this issue
-  // const noteInd = v.noteIndices[v.menuFocus];
-  // let el = document.createElement("div");
-  // style the note according to diatonic or not
-  // $(el)
-  //   .addClass("menuNote")
-  //   .css('--noteScaling', 1)
-  //   .css('--color', "#00f")
-  //   .css('--background-color', "#f00")
-  //   // .css('--color', col(noteInd))
-  //   // .css('--background-color', backgroundCol(noteInd))
-  //   .css('--left', `${window.innerWidth / 2 + pos(v.menuFocus)[0] * whatisthis}px`)
-  //   .css('--top', `${window.innerHeight / 2 - pos(v.menuFocus)[1] * whatisthis}px`)
-  //   .css('--width', `${v.noteSize}em`)
-  //   .css('--height', `${v.noteSize}em`)
-  //   .text("test")
-
-  $("#menu")
-    // add the menuFocus note as extra note
-    .append(
-      $("<div>")
-        .addClass("menuNote")
-        .css('--width', `${v.noteSize}em`)
-        .css('--height', `${v.noteSize}em`)
-        // write the note name: update it every click
-        .append(document.createTextNode(v.notes[v.noteIndices[v.menuFocus]]))
-    )
-    // shrink the menu on mouse click and on mouse leave
-    .click(() => {
-      markChord(v.menuFocus)
-      // $("#menu")
-      //   // .css("--transitionSpeed", v.speed[0])
-      //   .css("--noteScaling", v.scaling[1])
-    })
-  // .hover(
-  //   () => { markChord(v.menuFocus) },
-  //   () => {
-  //     // $("#menu")
-  //     // // .css("--noteScaling", v.scaling[0])
-  //     // // .css("--transitionSpeed", v.speed[0])
-  //   }
-  // )
+  // $("#menu")
+  //   // add the rootNote note as extra note
+  //   .append(
+  //     $("<div>")
+  //       .addClass("menuNote")
+  //       .css('--width', `${v.noteSize+1}em`)
+  //       .css('--height', `${v.noteSize+1}em`)
+  //       // write the note name: update it every click
+  //       .append(document.createTextNode(v.notes[v.noteIndices[v.rootNote]]))
+  //   )
+  //   // shrink the menu on mouse click and on mouse leave
+  //   .click(() => {
+  //     markChord(v.rootNote)
+  //   })
 }
 
 //
@@ -503,7 +645,7 @@ function onWindowResize() {
   camera.updateProjectionMatrix();
 
   renderer.setSize(window.innerWidth, window.innerHeight);
-  drawNoteNames();
+  drawNotes();
   initMenu();
 }
 
