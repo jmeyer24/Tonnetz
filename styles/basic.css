@@ -4,7 +4,8 @@
   --background-color: #fff;
   --standardColor: #5a4;
   --rootColor: red;
-  --destinationColor: grey;
+  --destinationColor: gold;
+  --scaleColor: blue;
   --left: 0px;
   --top: 0px;
   --width: 0px;
@@ -13,6 +14,9 @@
   --menuHeight: 130px;
   --transitionSpeed: 0.7s;
   --padding: 20px;
+  --tagWidth: 10px;
+  --extraTagWidth: 5px;
+  --borderStyle: solid;
 }
 
 body {
@@ -62,7 +66,7 @@ body {
   /* styling */
   border-radius: 50%;
   padding: var(--padding);
-  /* transition: all 100ms ease-out; */
+  transition: all 200ms linear;
 
   /* to align in center */
   display: flex;
@@ -92,27 +96,44 @@ body {
 .note:hover {
   /* padding: calc(var(--padding) * var(--noteScaling)); */
   /* --noteScaling: 1.25; */
-  border-width: 5px;
-  border-style: solid;
+  border-width: var(--extraTagWidth);
+  border-style: var(--borderStyle);
   border-color: var(--rootColor);
 }
 
 .note.root {
-  border-width: 10px;
-  border-style: solid;
+  border-width: var(--tagWidth);
+  border-style: var(--borderStyle);
   border-color: var(--rootColor);
+  /* --noteScaling: 1.25; */
 }
 
 .note.chordNote {
-  border-width: 10px;
-  border-style: solid;
+  border-width: var(--tagWidth);
+  border-style: var(--borderStyle);
   border-color: var(--standardColor);
+  /* --noteScaling: 1.25; */
 }
 
 .note.destination {
-  border-width: 10px;
-  border-style: solid;
+  border-width: var(--tagWidth);
+  border-style: var(--borderStyle);
   border-color: var(--destinationColor);
+  /* --noteScaling: 1.25; */
+}
+
+.note.scaleNote {
+  border-width: var(--tagWidth);
+  border-style: var(--borderStyle);
+  border-color: var(--standardColor);
+  /* --noteScaling: 1.25; */
+}
+
+.note.scaleNote.extra {
+  /* border-width: var(--extraTagWidth); */
+  /* border-style: var(--borderStyle); */
+  /* border-color: var(--scaleColor); */
+  /* --noteScaling: 1; */
 }
 
 /* .noteName:hover{ */

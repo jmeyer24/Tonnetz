@@ -13,8 +13,7 @@
 // SPACEBAR: toggle coloring
 
 // =============== destination note ==============
-// C: iterate through chords with destination note as interval note, upward
-// V: same as C, but downward
+// C/V: iterate through chords with destination note as interval note, upward/downward
 // ENTER: center tonnetz on the root note
 // +SHIFT: instead center on the destination note
 // +CTRL: instead move destination note to root
@@ -48,8 +47,24 @@ let v = new function () {
     "Bb/A#",
     "B",
   ]
-  this.chordOptions = ["o", "-", "", "+", "o7", "o/7", "o/maj7", "-7", "&#8209;maj7", "7", "maj7", "+7", "+maj7", "o7(b9)", "o9", "o/7(b9)", "o/9", "&#8209;7(b9)", "-9", "7(b9)", "9", "maj7(b9)", "maj9", "+maj7(b9)", "+maj9", "sus4"];
+  // TODO: use symbols
+  this.chordOptions = ["o", "-", "", "+", "o7", "o/7", "o/maj7", "-7", "&#8209;maj7", "7", "maj7", "+7", "+maj7", "o7(b9)", "o9", "o/7(b9)", "o/9", "&#8209;7(b9)", "-9", "7(b9)", "9", "maj7(b9)", "maj9", "+maj7(b9)", "+maj9", "sus4", "root", "5"];
+  this.scaleOptions = [
+    // chruch scales, bright to dark, lydian to locrian
+    [0, 2, 4, 6, 7, 9, 11], // lydian
+    [0, 2, 4, 5, 7, 9, 11], // ionian
+    [0, 2, 4, 5, 7, 9, 10], // mixolydian
+    [0, 2, 3, 5, 7, 9, 10], // dorian
+    [0, 2, 3, 5, 7, 8, 10], // aeolien
+    [0, 1, 3, 5, 7, 8, 10], // phrygian
+    [0, 1, 3, 5, 6, 8, 10], // locrian
+
+    // TODO: add more scales
+  ];
+  this.scaleToScaleFunctionMap = ["IV", "I", "V", "ii", "vi", "iii", "vii°"]
+  this.scaleToScaleNamenMap = ["lydian", "ionian", "mixolydian", "dorian", "aeolian", "phrygian", "locrian"]
   this.chordPossibilities = [];
+  this.scalePossibilities = [];
   this.intervals = ["1", "b2/b9", "2/9", "b3", "3", "4/11", "b5/#11", "5", "b6/b13", "6/13", "b7", "maj7"];
   this.chordFunctions = [0]; // root = 0, fifth = 7, ...
   this.diatonics = [0, 2, 4, 5, 7, 9, 11, 12];
@@ -59,7 +74,11 @@ let v = new function () {
   this.destinationNote = this.rootNote;
   // this.currentChord = Math.floor(13 * Math.random());
   this.currentChord = 2;
-  this.currentPossibility = 0;
+  this.currentChordPossibility = 0;
+  this.currentScale = 0;
+  this.currentScalePossibility = 0;
+  this.toggleChord = true;
+  this.toggleScale = false;
 }
 
 const notesPerRow = v.segments + 1;
@@ -67,6 +86,7 @@ const notesPerRow = v.segments + 1;
 // const hsTonnetzMap = [0, -2 * notesPerRow - 1, 2, notesPerRow + 1, -notesPerRow, -1, -notesPerRow + 2, 1, notesPerRow, -notesPerRow - 1, notesPerRow + 2, -notesPerRow + 1];
 const hsTonnetzMap = [0, 2 * (notesPerRow + 1.5), 2, notesPerRow + 1, -notesPerRow, -1, 2 * (notesPerRow + 1), 1, -2 * notesPerRow, 3 * (notesPerRow + 1), notesPerRow + 2, -notesPerRow + 1];
 const arrowMovementMap = [0, 2 * (notesPerRow + 1.5), 2, notesPerRow + 1, -notesPerRow, -1, 2 * (notesPerRow + 1), 1, -2 * notesPerRow, -(notesPerRow + 1), notesPerRow + 2, -notesPerRow + 1];
+const scaleMap = [0, notesPerRow - 1, 2, notesPerRow + 1, -notesPerRow, -1, -2 * (notesPerRow + 1), 1, notesPerRow, -(notesPerRow + 1), notesPerRow + 2, -notesPerRow + 1];
 
 // fill the v.chordFunctions array with the half steps from root for the respective chord
 const fillChordFunctions = chord => {
@@ -212,10 +232,17 @@ const fillChordFunctions = chord => {
       major7();
       major2();
       break;
-    
+
     // chords with 4
     case v.chordOptions[25]:
       perfect4();
+      perfect5();
+      break;
+
+    // only root or with fifth
+    case v.chordOptions[26]:
+      break;
+    case v.chordOptions[27]:
       perfect5();
       break;
 
@@ -248,12 +275,23 @@ const clickCol = (i) => isDiatonic(i) ? "#5a4" : "#5a4";
 
 function updateChordPossibilites() {
   v.chordPossibilities = [];
-  v.chordOptions.forEach(function (chordoption, index) {
-    fillChordFunctions(chordoption);
-    // let hsFromRoot = mod(v.notes.length - v.destinationNoteIndices[v.destinationNote], v.notes.length)
+  v.chordOptions.forEach(function (option, index) {
+    fillChordFunctions(option);
     let hsFromRoot = v.destinationNoteIndices[v.destinationNote];
     if (v.chordFunctions.includes(hsFromRoot)) {
       v.chordPossibilities.push(index);
+    }
+  })
+}
+
+function updateScalePossibilites() {
+  /*
+  check which scale is a possibility for the current chord
+  */
+  v.scalePossibilities = [];
+  v.scaleOptions.forEach(function (option, index) {
+    if (v.chordFunctions.every(element => option.includes(element))) {
+      v.scalePossibilities.push(index);
     }
   })
 }
@@ -316,8 +354,10 @@ function initScene() {
       case 13: // enter: focus on destination Note
         keydownEnter();
         break;
-      case 32: // space bar: toggle chord coloring
+      case 32: // space bar: toggle everything off, chord on only
         markChord()
+        // toggle scale off, but not on with space
+        v.toggleScale = v.toggleScale ? !v.toggleScale : v.toggleScale;
         break;
       case 37: // on left: keydownArrow function
         keydownArrow(5)
@@ -332,10 +372,29 @@ function initScene() {
         keydownArrow(3);
         break;
       case 67: // on "c": iterate through possibilities upward
+        v.toggleScale = false;
         keydownPossibilities(1);
         break;
       case 86: // on "v": iterate through possibilities downward
+        v.toggleScale = false;
         keydownPossibilities(-1);
+        break;
+      case 68: // on "d": iterate through scales upward
+        v.toggleScale = true;
+        keydownScales(1);
+        break;
+      case 70: // on "f": iterate through scales downward
+        v.toggleScale = true;
+        keydownScales(-1);
+        break;
+      case 83: // on "s": toggle scale only
+        keydownScales(0);
+        v.toggleScale = !v.toggleScale;
+        markChord(true)
+        break;
+      case 88: // on "x": toggle chord only
+        v.toggleChord = !v.toggleChord;
+        markChord(true)
         break;
       default:
         return;
@@ -367,8 +426,12 @@ function initScene() {
         v.offset = v.noteIndices[v.rootNote] + halfsteps;
         updateNotePattern();
       } else {
+        let save = v.destinationNote == v.rootNote
         v.rootNote += arrowMovementMap[halfsteps];
         v.rootNote = mod(v.rootNote, (v.segments + 1) ** 2);
+        if (save) {
+          v.destinationNote = v.rootNote;
+        }
         updateNoteIndices();
       }
       markChord(true);
@@ -376,8 +439,17 @@ function initScene() {
 
     function keydownPossibilities(value) {
       updateChordPossibilites();
-      v.currentPossibility = mod((v.currentPossibility + value), v.chordPossibilities.length);
-      v.currentChord = v.chordPossibilities[v.currentPossibility];
+      v.currentChordPossibility = mod((v.currentChordPossibility + value), v.chordPossibilities.length);
+      v.currentChord = v.chordPossibilities[v.currentChordPossibility];
+      markChord(true);
+    }
+
+    function keydownScales(value) {
+      updateScalePossibilites();
+      if (v.scalePossibilities.length > 0) {
+        v.currentScalePossibility = mod((v.currentScalePossibility + value), v.scalePossibilities.length);
+        v.currentScale = v.scalePossibilities[v.currentScalePossibility];
+      }
       markChord(true);
     }
   })
@@ -551,6 +623,7 @@ function markChord(disableToggle = false) {
       .removeClass("root")
       .removeClass("chordNote")
       .removeClass("destination")
+      .removeClass("scaleNote")
       .html(`${v.notes[v.noteIndices[index]]}`)
   })
 
@@ -562,28 +635,59 @@ function markChord(disableToggle = false) {
   // only if not already colored, then don't color (toggle)
   if (!isRoot) {
     let name = "";
+
+    // mark scale notes
+    if (v.toggleScale) {
+      if (v.scalePossibilities.length > 0) {
+        let scale = v.scaleOptions[v.currentScale];
+        if (scale) {
+          let newScale = scale.map(element => { return mod(element + v.noteIndices[v.rootNote], v.notes.length) })
+          v.noteIndices.forEach((element, index) => {
+            if (newScale.includes(element)) {
+              $(`#noteBin div:nth-child(${index + 1})`)
+                .addClass("scaleNote")
+                .addClass("extra")
+            }
+          })
+          scale.forEach(halfsteps => {
+            $(`#noteBin div:nth-child(${v.rootNote + scaleMap[halfsteps] + 1})`)
+              .removeClass("extra")
+          })
+        }
+      }
+    }
+
+    // mark destination note
+    if (v.destinationNote != v.rootNote) {
+      name = `${v.notes[v.noteIndices[v.destinationNote]] + "\n" + v.intervals[v.destinationNoteIndices[v.destinationNote]]}`;
+      $(`#noteBin div:nth-child(${v.destinationNote + 1})`)
+        .removeClass("scaleNote")
+        .addClass("destination")
+        .html(name)
+    }
+
+    // mark chord notes
     v.chordFunctions.map(i => hsTonnetzMap[i]).forEach((halfsteps, index) => {
       k = v.rootNote + halfsteps;
       if (k < (notesPerRow) ** 2) {
         if (k == v.rootNote) {
-          // write chord name at root
-          name = `${v.notes[v.noteIndices[k]] + "\n" + v.chordOptions[v.currentChord]}`;
+          // write scale or chord name at root
+          if (v.toggleScale && v.scalePossibilities.length > 0) {
+            name = `${v.notes[v.noteIndices[k]] + "\n" + v.scaleToScaleFunctionMap[v.scalePossibilities[v.currentScalePossibility]]}`;
+          } else {
+            name = `${v.notes[v.noteIndices[k]] + "\n" + v.chordOptions[v.currentChord]}`;
+          }
         } else {
           // write chord function of non-root notes
           name = `${v.notes[v.noteIndices[k]] + "\n" + v.intervals[v.chordFunctions[index]]}`;
         }
         $(`#noteBin div:nth-child(${k + 1})`)
+          .removeClass("scaleNote")
+          .removeClass("destination")
           .addClass((k == v.rootNote) ? "root" : "chordNote")
           .html(name)
       }
     });
-    // update destination note
-    if (v.destinationNote != v.rootNote) {
-      name = `${v.notes[v.noteIndices[v.destinationNote]] + "\n" + v.intervals[v.destinationNoteIndices[v.destinationNote]]}`;
-      $(`#noteBin div:nth-child(${v.destinationNote + 1})`)
-        .addClass("destination")
-        .html(name)
-    }
   }
 }
 
